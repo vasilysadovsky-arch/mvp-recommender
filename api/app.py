@@ -1,0 +1,70 @@
+
+from fastapi import FastAPI, Query
+from pydantic import BaseModel
+from typing import List, Optional
+import os
+import pandas as pd
+
+# Local imports
+from models.content import score_content
+from models.hybrid import score_hybrid
+from models.cf import score_cf
+from fair.rerank import rerank_exposure
+
+app = FastAPI(title="MVP Recommender API", version="0.1.0")
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+
+class Item(BaseModel):
+    provider_id: str
+    display_name: str
+    score: float
+    rationale: List[str] = []
+
+class TopNResponse(BaseModel):
+    mode: str
+    fair: int
+    user_id: Optional[str] = None
+    items: List[Item]
+
+def _load_data():
+    users = providers = inter = None
+    try:
+        users = pd.read_csv(os.path.join(DATA_DIR, "users.csv"))
+        providers = pd.read_csv(os.path.join(DATA_DIR, "providers.csv"))
+        inter = pd.read_csv(os.path.join(DATA_DIR, "interactions.csv"))
+    except Exception:
+        pass
+    return users, providers, inter
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+@app.get("/topN", response_model=TopNResponse)
+def topN(
+    mode: str = Query("content", pattern="^(content|cf|hybrid)$"),
+    fair: int = Query(0, ge=0, le=1),
+    k: int = Query(10, ge=1, le=50),
+    user_id: Optional[str] = Query(None),
+):
+    users, providers, inter = _load_data()
+
+    # Fallback dummy list if data missing
+    if providers is None or len(providers) == 0:
+        items = [
+            {"provider_id": f"p_{i:03d}", "display_name": f"Provider {i:03d}", "score": 1.0 - i*0.01, "rationale": ["dummy"]}
+            for i in range(k)
+        ]
+    else:
+        if mode == "content":
+            items = score_content(users, providers, inter, user_id=user_id, k=k)
+        elif mode == "cf":
+            items = score_cf(users, providers, inter, user_id=user_id, k=k)
+        else:
+            items = score_hybrid(users, providers, inter, user_id=user_id, k=k)
+
+    if fair == 1:
+        items = rerank_exposure(items, providers)
+
+    return {"mode": mode, "fair": fair, "user_id": user_id, "items": items}
