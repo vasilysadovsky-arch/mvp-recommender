@@ -1,3 +1,3 @@
 .PHONY: eval
 eval:
-	python eval/run_eval.py
+	python -m eval.run_eval
