@@ -63,3 +63,5 @@ def score_cf(users, providers, inter, user_id: Optional[str], k: int) -> List[di
     if not out:
         return _popularity(inter, providers, k)
     return out
+    if not any(sc > 0 for _, sc in candidates):
+        return _popularity(inter, providers, k)
