@@ -24,7 +24,10 @@ def score_hybrid(users, providers, inter, user_id: Optional[str], k: int) -> Lis
     mf = _minmax(_to_map(cf))
 
     # Cold-start heuristic – if user_id is None or absent in interactions, lean more on content
-    alpha = 0.7 if (user_id is None or inter is None or user_id not in set(inter["user_id"])) else 0.5
+    alpha = 0.8 if (user_id is None or inter is None or user_id not in set(inter["user_id"])) else 0.6
+    if all(v == 0.0 for v in mf.values()):
+        mf = {}
+        alpha = 1.0
 
     # Union of candidate IDs
     ids = set(mc) | set(mf)
