@@ -1,51 +1,51 @@
-provider_id,display_name,tier
-p_001,Provider 001,head
-p_002,Provider 002,head
-p_003,Provider 003,head
-p_004,Provider 004,head
-p_005,Provider 005,head
-p_006,Provider 006,head
-p_007,Provider 007,head
-p_008,Provider 008,head
-p_009,Provider 009,head
-p_010,Provider 010,head
-p_011,Provider 011,head
-p_012,Provider 012,head
-p_013,Provider 013,head
-p_014,Provider 014,head
-p_015,Provider 015,head
-p_016,Provider 016,tail
-p_017,Provider 017,tail
-p_018,Provider 018,tail
-p_019,Provider 019,tail
-p_020,Provider 020,tail
-p_021,Provider 021,tail
-p_022,Provider 022,tail
-p_023,Provider 023,tail
-p_024,Provider 024,tail
-p_025,Provider 025,tail
-p_026,Provider 026,tail
-p_027,Provider 027,tail
-p_028,Provider 028,tail
-p_029,Provider 029,tail
-p_030,Provider 030,tail
-p_031,Provider 031,tail
-p_032,Provider 032,tail
-p_033,Provider 033,tail
-p_034,Provider 034,tail
-p_035,Provider 035,tail
-p_036,Provider 036,tail
-p_037,Provider 037,tail
-p_038,Provider 038,tail
-p_039,Provider 039,tail
-p_040,Provider 040,tail
-p_041,Provider 041,tail
-p_042,Provider 042,tail
-p_043,Provider 043,tail
-p_044,Provider 044,tail
-p_045,Provider 045,tail
-p_046,Provider 046,tail
-p_047,Provider 047,tail
-p_048,Provider 048,tail
-p_049,Provider 049,tail
-p_050,Provider 050,tail
+provider_id,display_name,tier,sector,keywords
+p_001,Provider 001,head,Textiles,cotton garment
+p_002,Provider 002,head,Food,meat seafood
+p_003,Provider 003,head,Textiles,fabric yarn
+p_004,Provider 004,head,Food,meat organic
+p_005,Provider 005,head,Tech,automation cloud
+p_006,Provider 006,head,Food,dairy ingredients
+p_007,Provider 007,head,Food,meat seafood
+p_008,Provider 008,head,Textiles,fabric sourcing
+p_009,Provider 009,head,Tech,ai cloud
+p_010,Provider 010,head,Textiles,sourcing cotton
+p_011,Provider 011,head,Tech,cloud hardware
+p_012,Provider 012,head,Food,organic dairy
+p_013,Provider 013,head,Food,meat organic
+p_014,Provider 014,head,Textiles,garment fabric
+p_015,Provider 015,head,Tech,automation software
+p_016,Provider 016,tail,Textiles,yarn sourcing
+p_017,Provider 017,tail,Textiles,yarn garment
+p_018,Provider 018,tail,Textiles,yarn fabric
+p_019,Provider 019,tail,Food,ingredients organic
+p_020,Provider 020,tail,Textiles,sourcing fabric
+p_021,Provider 021,tail,Textiles,garment sourcing
+p_022,Provider 022,tail,Tech,automation hardware
+p_023,Provider 023,tail,Food,seafood organic
+p_024,Provider 024,tail,Textiles,garment fabric
+p_025,Provider 025,tail,Textiles,fabric yarn
+p_026,Provider 026,tail,Food,ingredients dairy
+p_027,Provider 027,tail,Tech,software hardware
+p_028,Provider 028,tail,Textiles,cotton sourcing
+p_029,Provider 029,tail,Tech,hardware automation
+p_030,Provider 030,tail,Tech,ai software
+p_031,Provider 031,tail,Textiles,fabric yarn
+p_032,Provider 032,tail,Tech,automation ai
+p_033,Provider 033,tail,Textiles,garment yarn
+p_034,Provider 034,tail,Tech,cloud automation
+p_035,Provider 035,tail,Food,seafood dairy
+p_036,Provider 036,tail,Tech,ai hardware
+p_037,Provider 037,tail,Tech,automation hardware
+p_038,Provider 038,tail,Tech,cloud software
+p_039,Provider 039,tail,Tech,cloud ai
+p_040,Provider 040,tail,Tech,automation software
+p_041,Provider 041,tail,Textiles,cotton yarn
+p_042,Provider 042,tail,Food,ingredients meat
+p_043,Provider 043,tail,Food,meat organic
+p_044,Provider 044,tail,Textiles,yarn garment
+p_045,Provider 045,tail,Food,organic seafood
+p_046,Provider 046,tail,Tech,automation software
+p_047,Provider 047,tail,Food,seafood organic
+p_048,Provider 048,tail,Textiles,garment fabric
+p_049,Provider 049,tail,Tech,hardware software
+p_050,Provider 050,tail,Tech,hardware cloud
