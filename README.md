@@ -24,7 +24,7 @@ python data_synth/generate.py
 
 4) **Run the API**
 ```bash
-uvicorn api.app:app --reload
+uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 5) **Test the endpoint**
@@ -50,3 +50,14 @@ tests/         # Minimal smoke tests
 - Replace placeholder scoring with TF‑IDF (content) and add ALS/BPR (CF) later.
 - Implement evaluation scripts in `eval/`.
 - Add rationale badges and UI if needed.
+
+## Evaluate (Week 3)
+
+```bash
+source .venv/bin/activate
+make -B eval
+```
+
+## Outputs (in reports/):
+- eval_summary.csv – per user × mode metrics (precision@10, nDCG@10)
+- eval_agg.csv – average metrics by mode
