@@ -11,7 +11,25 @@ from models.hybrid import score_hybrid
 from models.cf import score_cf
 from fair.rerank import rerank_exposure
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+import os
+
 app = FastAPI(title="MVP Recommender API", version="0.1.0")
+
+# UI directory (simple static HTML UI)
+UI_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui")
+
+# Serve /ui as static files (index.html inside)
+if os.path.isdir(UI_DIR):
+    app.mount("/ui", StaticFiles(directory=UI_DIR, html=True), name="ui")
+
+@app.get("/")
+def root():
+    # redirect root to the UI homepage if present, else just return a basic health
+    if os.path.isdir(UI_DIR):
+        return RedirectResponse(url="/ui/")
+    return {"ok": True}
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
