@@ -1,3 +1,6 @@
-.PHONY: eval
+.PHONY: all eval data
+data:
+\tpython data_synth/generate.py
 eval:
-	python -m eval.run_eval
+\tpython -m eval.run_eval
+all: data eval
