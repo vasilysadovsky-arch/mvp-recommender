@@ -60,4 +60,10 @@ make -B eval
 
 ## Outputs (in reports/):
 - eval_summary.csv – per user × mode metrics (precision@10, nDCG@10)
+
+## Reproduce results
+```bash
+source .venv/bin/activate
+make -B all
+```
 - eval_agg.csv – average metrics by mode
