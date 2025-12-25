@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MVP Recommender – UI</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
+    h1 { margin-bottom: 8px; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    label { font-size: 14px; }
+    input, select, button { padding: 6px 10px; font-size: 14px; }
+    table { border-collapse: collapse; margin-top: 16px; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    .badge { display: inline-block; padding: 2px 6px; margin-right: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; }
+    .small { color:#666; font-size: 12px; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>MVP Recommender</h1>
+
+  <div class="row">
+    <label>Mode:
+      <select id="mode">
+        <option value="pop">popularity</option>
+        <option value="content">content</option>
+        <option value="cf">cf</option>
+        <option value="hybrid">hybrid</option>
+      </select>
+    </label>
+
+    <label>Fair:
+      <select id="fair">
+        <option value="0">0</option>
+        <option value="1">1</option>
+      </select>
+    </label>
+
+    <label>K:
+      <input id="k" type="number" min="1" max="50" value="10" />
+    </label>
+
+    <label>User ID:
+      <input id="user" type="text" value="u_001" placeholder="u_001" />
+    </label>
+
+    <button id="go">Get matches</button>
+    <span class="small" id="status"></span>
+  </div>
+
+  <table id="tbl" style="display:none">
+    <thead>
+      <tr><th>#</th><th>Provider</th><th>Score</th><th>Rationale</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const go = document.getElementById('go');
+    const mode = document.getElementById('mode');
+    const fair = document.getElementById('fair');
+    const k = document.getElementById('k');
+    const user = document.getElementById('user');
+    const status = document.getElementById('status');
+    const tbl = document.getElementById('tbl');
+    const tbody = tbl.querySelector('tbody');
+
+    async function fetchTopN() {
+      status.textContent = 'Loading...';
+      tbody.innerHTML = '';
+      tbl.style.display = 'none';
+
+      try {
+        const url = `/topN?mode=${encodeURIComponent(mode.value)}&fair=${fair.value}&k=${k.value}&user_id=${encodeURIComponent(user.value)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        (data.items || []).forEach((it, idx) => {
+          const tr = document.createElement('tr');
+
+          const tdIdx = document.createElement('td');
+          tdIdx.textContent = String(idx + 1);
+
+          const tdName = document.createElement('td');
+          tdName.textContent = `${it.display_name} (${it.provider_id})`;
+
+          const tdScore = document.createElement('td');
+          tdScore.textContent = it.score.toFixed ? it.score.toFixed(4) : it.score;
+
+          const tdRaz = document.createElement('td');
+          (it.rationale || []).forEach(r => {
+            const b = document.createElement('span');
+            b.className = 'badge';
+            b.textContent = r;
+            tdRaz.appendChild(b);
+          });
+
+          tr.append(tdIdx, tdName, tdScore, tdRaz);
+          tbody.appendChild(tr);
+        });
+
+        if ((data.items || []).length > 0) {
+          tbl.style.display = 'table';
+        }
+        status.textContent = `mode=${data.mode}, fair=${data.fair}, user=${data.user_id}`;
+      } catch (e) {
+        status.textContent = 'Error: ' + e.message;
+      }
+    }
+
+    go.addEventListener('click', fetchTopN);
+    // Auto-run once on load
+    fetchTopN();
+  </script>
+</body>
+</html>
