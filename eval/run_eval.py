@@ -9,6 +9,7 @@ from models.content import score_content
 from models.cf import score_cf
 from models.hybrid import score_hybrid
 from fair.rerank import rerank_head_tail
+from models.popularity import score_popularity
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 DATA = os.path.join(ROOT, "data")
@@ -20,6 +21,7 @@ providers = pd.read_csv(os.path.join(DATA, "providers.csv"))
 inter = pd.read_csv(os.path.join(DATA, "interactions.csv"))
 
 MODES = {
+    "pop": score_popularity,
     "content": score_content,
     "cf": score_cf,
     "hybrid": score_hybrid,
