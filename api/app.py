@@ -10,6 +10,7 @@ from models.content import score_content
 from models.hybrid import score_hybrid
 from models.cf import score_cf
 from fair.rerank import rerank_exposure
+from models.popularity import score_popularity
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -61,7 +62,7 @@ def health():
 
 @app.get("/topN", response_model=TopNResponse)
 def topN(
-    mode: str = Query("content", pattern="^(content|cf|hybrid)$"),
+    mode: str = Query("content", pattern="^(pop|content|cf|hybrid)$"),
     fair: int = Query(0, ge=0, le=1),
     k: int = Query(10, ge=1, le=50),
     user_id: Optional[str] = Query(None),
@@ -71,15 +72,22 @@ def topN(
     # Fallback dummy list if data missing
     if providers is None or len(providers) == 0:
         items = [
-            {"provider_id": f"p_{i:03d}", "display_name": f"Provider {i:03d}", "score": 1.0 - i*0.01, "rationale": ["dummy"]}
+            {
+                "provider_id": f"p_{i:03d}",
+                "display_name": f"Provider {i:03d}",
+                "score": 1.0 - i * 0.01,
+                "rationale": ["dummy"],
+            }
             for i in range(k)
         ]
     else:
-        if mode == "content":
+        if mode == "pop":
+            items = score_popularity(users, providers, inter, user_id=user_id, k=k)
+        elif mode == "content":
             items = score_content(users, providers, inter, user_id=user_id, k=k)
         elif mode == "cf":
             items = score_cf(users, providers, inter, user_id=user_id, k=k)
-        else:
+        else:  # hybrid
             items = score_hybrid(users, providers, inter, user_id=user_id, k=k)
 
     if fair == 1:
