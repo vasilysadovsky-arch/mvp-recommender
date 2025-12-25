@@ -9,7 +9,7 @@ import pandas as pd
 from models.content import score_content
 from models.hybrid import score_hybrid
 from models.cf import score_cf
-from fair.rerank import rerank_exposure
+from fair.rerank import rerank_head_tail
 from models.popularity import score_popularity
 
 from fastapi.staticfiles import StaticFiles
@@ -91,6 +91,6 @@ def topN(
             items = score_hybrid(users, providers, inter, user_id=user_id, k=k)
 
     if fair == 1:
-        items = rerank_exposure(items, providers)
+        items = rerank_head_tail(items, providers, k=k)
 
     return {"mode": mode, "fair": fair, "user_id": user_id, "items": items}
