@@ -6,43 +6,59 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
-    h1 { margin-bottom: 8px; }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-    label { font-size: 14px; }
+    h1 { margin: 0 0 8px 0; }
+    h2 { margin: 28px 0 8px 0; }
+    .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+    label { font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
     input, select, button { padding: 6px 10px; font-size: 14px; }
-    table { border-collapse: collapse; margin-top: 16px; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    button { cursor: pointer; }
+    table { border-collapse: collapse; margin-top: 12px; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
     th { background: #f5f5f5; }
-    .badge { display: inline-block; padding: 2px 6px; margin-right: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; }
-    .small { color:#666; font-size: 12px; margin-left: 8px; }
+    .badge { display: inline-block; padding: 2px 6px; margin-right: 6px; margin-bottom: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; }
+    .small { font-size: 12px; color: #555; }
+    .grid2 { display: flex; gap: 16px; align-items: flex-start; }
+    .col { flex: 1; min-width: 320px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; }
+    .muted { color: #666; }
   </style>
 </head>
 <body>
   <h1>MVP Recommender</h1>
+  <div class="small muted">Matches and Comparison (baseline vs hybrid + fairness). Scores are shown in all outputs.</div>
 
+  <h2>Matches</h2>
   <div class="row">
-    <label>Mode:
+    <label>Mode
       <select id="mode">
         <option value="pop">popularity</option>
-        <option value="content">content</option>
+        <option value="content" selected>content</option>
         <option value="cf">cf</option>
         <option value="hybrid">hybrid</option>
       </select>
     </label>
 
-    <label>Fair:
+    <label>Fair
       <select id="fair">
-        <option value="0">0</option>
+        <option value="0" selected>0</option>
         <option value="1">1</option>
       </select>
     </label>
 
-    <label>K:
+    <label>K
       <input id="k" type="number" min="1" max="50" value="10" />
     </label>
 
-    <label>User ID:
-      <input id="user" type="text" value="u_001" placeholder="u_001" />
+    <label>User ID
+      <input id="user" type="text" value="u_001" list="usersList" placeholder="u_001" />
+      <datalist id="usersList"></datalist>
+    </label>
+
+    <label>Sort
+      <select id="sort">
+        <option value="score_desc" selected>Score (desc)</option>
+        <option value="name_asc">Name (A–Z)</option>
+      </select>
     </label>
 
     <button id="go">Get matches</button>
@@ -56,63 +72,192 @@
     <tbody></tbody>
   </table>
 
+  <h2>Comparison</h2>
+  <div class="row">
+    <button id="compare">Compare baseline vs hybrid + fair</button>
+    <span class="small" id="compareStatus"></span>
+  </div>
+
+  <div class="grid2">
+    <div class="col card">
+      <div><strong>Baseline</strong> <span class="small muted">(mode=pop, fair=0)</span></div>
+      <div class="small" id="mBase"></div>
+      <table id="tblBase" style="display:none">
+        <thead>
+          <tr><th>#</th><th>Provider</th><th>Score</th><th>Rationale</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="col card">
+      <div><strong>Hybrid + Fairness</strong> <span class="small muted">(mode=hybrid, fair=1)</span></div>
+      <div class="small" id="mTreat"></div>
+      <table id="tblTreat" style="display:none">
+        <thead>
+          <tr><th>#</th><th>Provider</th><th>Score</th><th>Rationale</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
   <script>
-    const go = document.getElementById('go');
-    const mode = document.getElementById('mode');
-    const fair = document.getElementById('fair');
-    const k = document.getElementById('k');
-    const user = document.getElementById('user');
-    const status = document.getElementById('status');
-    const tbl = document.getElementById('tbl');
+    const el = (id) => document.getElementById(id);
+
+    const go = el('go');
+    const compare = el('compare');
+
+    const mode = el('mode');
+    const fair = el('fair');
+    const k = el('k');
+    const user = el('user');
+    const sort = el('sort');
+
+    const status = el('status');
+    const tbl = el('tbl');
     const tbody = tbl.querySelector('tbody');
+
+    const compareStatus = el('compareStatus');
+    const tblBase = el('tblBase');
+    const tblTreat = el('tblTreat');
+    const tbodyBase = tblBase.querySelector('tbody');
+    const tbodyTreat = tblTreat.querySelector('tbody');
+    const mBase = el('mBase');
+    const mTreat = el('mTreat');
+
+    function buildUrl(params) {
+      const usp = new URLSearchParams(params);
+      return `/topN?${usp.toString()}`;
+    }
+
+    function renderTable(items, tbodyEl, tableEl) {
+      tbodyEl.innerHTML = '';
+      tableEl.style.display = 'none';
+
+      (items || []).forEach((it, idx) => {
+        const tr = document.createElement('tr');
+
+        const tdIdx = document.createElement('td');
+        tdIdx.textContent = String(idx + 1);
+
+        const tdName = document.createElement('td');
+        tdName.textContent = it.display_name + ` (${it.provider_id})`;
+
+        const tdScore = document.createElement('td');
+        const sc = (typeof it.score === 'number') ? it.score : parseFloat(it.score || 0);
+        tdScore.textContent = sc.toFixed(4);
+
+        const tdRat = document.createElement('td');
+        (it.rationale || []).forEach(r => {
+          const span = document.createElement('span');
+          span.className = 'badge';
+          span.textContent = r;
+          tdRat.appendChild(span);
+        });
+
+        tr.appendChild(tdIdx);
+        tr.appendChild(tdName);
+        tr.appendChild(tdScore);
+        tr.appendChild(tdRat);
+
+        tbodyEl.appendChild(tr);
+      });
+
+      if ((items || []).length > 0) {
+        tableEl.style.display = 'table';
+      }
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+
+    async function loadMeta() {
+      try {
+        const data = await fetchJson('/meta');
+        const dl = el('usersList');
+        dl.innerHTML = '';
+        (data.users || []).slice(0, 200).forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u;
+          dl.appendChild(opt);
+        });
+      } catch (e) {
+        console.warn('meta load failed', e);
+      }
+    }
 
     async function fetchTopN() {
       status.textContent = 'Loading...';
-      tbody.innerHTML = '';
       tbl.style.display = 'none';
+      tbody.innerHTML = '';
+
+      const params = {
+        mode: mode.value,
+        fair: fair.value,
+        k: k.value,
+        user_id: user.value || '',
+        sort: sort.value,
+      };
 
       try {
-        const url = `/topN?mode=${encodeURIComponent(mode.value)}&fair=${fair.value}&k=${k.value}&user_id=${encodeURIComponent(user.value)}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        (data.items || []).forEach((it, idx) => {
-          const tr = document.createElement('tr');
-
-          const tdIdx = document.createElement('td');
-          tdIdx.textContent = String(idx + 1);
-
-          const tdName = document.createElement('td');
-          tdName.textContent = `${it.display_name} (${it.provider_id})`;
-
-          const tdScore = document.createElement('td');
-          tdScore.textContent = it.score.toFixed ? it.score.toFixed(4) : it.score;
-
-          const tdRaz = document.createElement('td');
-          (it.rationale || []).forEach(r => {
-            const b = document.createElement('span');
-            b.className = 'badge';
-            b.textContent = r;
-            tdRaz.appendChild(b);
-          });
-
-          tr.append(tdIdx, tdName, tdScore, tdRaz);
-          tbody.appendChild(tr);
-        });
-
-        if ((data.items || []).length > 0) {
-          tbl.style.display = 'table';
-        }
-        status.textContent = `mode=${data.mode}, fair=${data.fair}, user=${data.user_id}`;
+        const data = await fetchJson(buildUrl(params));
+        renderTable(data.items, tbody, tbl);
+        status.textContent = `mode=${data.mode}, fair=${data.fair}, user=${data.user_id || ''}`;
       } catch (e) {
         status.textContent = 'Error: ' + e.message;
       }
     }
 
+    async function fetchMetrics(modeVal, fairVal, kVal) {
+      const usp = new URLSearchParams({ mode: modeVal, fair: String(fairVal), k: String(kVal) });
+      return await fetchJson(`/metrics?${usp.toString()}`);
+    }
+
+    async function runComparison() {
+      compareStatus.textContent = 'Loading...';
+      tbodyBase.innerHTML = '';
+      tbodyTreat.innerHTML = '';
+      tblBase.style.display = 'none';
+      tblTreat.style.display = 'none';
+      mBase.textContent = '';
+      mTreat.textContent = '';
+
+      const common = {
+        k: k.value,
+        user_id: user.value || '',
+        sort: 'score_desc'
+      };
+
+      try {
+        const [base, treat, mb, mt] = await Promise.all([
+          fetchJson(buildUrl({ ...common, mode: 'pop', fair: 0 })),
+          fetchJson(buildUrl({ ...common, mode: 'hybrid', fair: 1 })),
+          fetchMetrics('pop', 0, common.k),
+          fetchMetrics('hybrid', 1, common.k),
+        ]);
+
+        renderTable(base.items, tbodyBase, tblBase);
+        renderTable(treat.items, tbodyTreat, tblTreat);
+
+        mBase.textContent = `Precision@${common.k}: ${mb.precision_at_k.toFixed(3)} | nDCG@${common.k}: ${mb.ndcg_at_k.toFixed(3)}`;
+        mTreat.textContent = `Precision@${common.k}: ${mt.precision_at_k.toFixed(3)} | nDCG@${common.k}: ${mt.ndcg_at_k.toFixed(3)}`;
+
+        compareStatus.textContent = 'Done.';
+      } catch (e) {
+        compareStatus.textContent = 'Error: ' + e.message;
+      }
+    }
+
     go.addEventListener('click', fetchTopN);
-    // Auto-run once on load
-    fetchTopN();
+    compare.addEventListener('click', runComparison);
+
+    loadMeta().then(() => {
+      fetchTopN();
+    });
   </script>
 </body>
 </html>

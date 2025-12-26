@@ -49,6 +49,7 @@ def score_content(users, providers, inter, user_id: Optional[str], k: int) -> Li
             "provider_id": str(row["provider_id"]),
             "display_name": str(row["display_name"]),
             "score": float(sims[idx]),
-            "rationale": ["sector/intent/keywords match"]
+            "rationale": ["profile similarity (sector + keywords)"]
         })
+
     return out
