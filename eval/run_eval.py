@@ -20,6 +20,17 @@ users = pd.read_csv(os.path.join(DATA, "users.csv"))
 providers = pd.read_csv(os.path.join(DATA, "providers.csv"))
 inter = pd.read_csv(os.path.join(DATA, "interactions.csv"))
 
+# Count interactions per user to define cohorts
+inter_counts = (
+    inter.groupby("user_id")["provider_id"]
+    .size()
+    .to_dict()
+)
+
+def user_cohort(uid: str) -> str:
+    """Return 'cold-start' if the user has 0 interactions, else 'non-cold-start'."""
+    return "cold-start" if inter_counts.get(uid, 0) == 0 else "non-cold-start"
+
 MODES = {
     "pop": score_popularity,
     "content": score_content,
@@ -109,3 +120,20 @@ agg.to_csv(agg_csv, index=False)
 print(f"Wrote per-user metrics to {out_csv}")
 print(f"Wrote aggregate metrics to {agg_csv}")
 print(agg)
+
+# --- Cohort-level aggregates (cold-start vs non-cold-start) ---
+df["cohort"] = df["user_id"].map(user_cohort)
+
+cohort_agg = (
+    df.groupby(["mode", "fair", "cohort"])[
+        ["precision@10", "nDCG@10", "head_exposure@10", "tail_exposure@10"]
+    ]
+    .mean()
+    .reset_index()
+)
+
+cohort_csv = os.path.join(REPORTS, "results_by_cohort.csv")
+cohort_agg.to_csv(cohort_csv, index=False)
+
+print(f"Wrote cohort metrics to {cohort_csv}")
+print(cohort_agg)
