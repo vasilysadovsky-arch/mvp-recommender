@@ -11,7 +11,6 @@
     .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
     label { font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
     input, select, button { padding: 6px 10px; font-size: 14px; }
-    select[multiple] { min-width: 220px; }
     button { cursor: pointer; }
     table { border-collapse: collapse; margin-top: 12px; width: 100%; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
@@ -53,23 +52,6 @@
     <label>User ID
       <input id="user" type="text" value="u_001" list="usersList" placeholder="u_001" />
       <datalist id="usersList"></datalist>
-    </label>
-
-    <label>Intent (override)
-      <select id="intent">
-        <option value="">(use profile)</option>
-        <option value="Buy">Buy</option>
-        <option value="Sell">Sell</option>
-        <option value="Partner">Partner</option>
-      </select>
-    </label>
-
-    <label>Sectors (providers)
-      <select id="sectors" multiple size="4"></select>
-    </label>
-
-    <label>Keyword search
-      <input id="q" type="text" placeholder="e.g., seafood, cotton" />
     </label>
 
     <label>Sort
@@ -130,9 +112,6 @@
     const fair = el('fair');
     const k = el('k');
     const user = el('user');
-    const intent = el('intent');
-    const sectors = el('sectors');
-    const q = el('q');
     const sort = el('sort');
 
     const status = el('status');
@@ -146,12 +125,6 @@
     const tbodyTreat = tblTreat.querySelector('tbody');
     const mBase = el('mBase');
     const mTreat = el('mTreat');
-
-    function selectedSectorsCsv() {
-      const opts = Array.from(sectors.selectedOptions || []);
-      const vals = opts.map(o => o.value).filter(Boolean);
-      return vals.join(',');
-    }
 
     function buildUrl(params) {
       const usp = new URLSearchParams(params);
@@ -205,17 +178,6 @@
     async function loadMeta() {
       try {
         const data = await fetchJson('/meta');
-
-        // sectors
-        sectors.innerHTML = '';
-        (data.sectors || []).forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s;
-          opt.textContent = s;
-          sectors.appendChild(opt);
-        });
-
-        // users datalist
         const dl = el('usersList');
         dl.innerHTML = '';
         (data.users || []).slice(0, 200).forEach(u => {
@@ -223,22 +185,7 @@
           opt.value = u;
           dl.appendChild(opt);
         });
-
-        // intents (optional)
-        if (Array.isArray(data.intents) && data.intents.length) {
-          // keep default list but ensure includes dataset values
-          const existing = new Set(Array.from(intent.options).map(o => o.value));
-          data.intents.forEach(v => {
-            if (!existing.has(v)) {
-              const opt = document.createElement('option');
-              opt.value = v;
-              opt.textContent = v;
-              intent.appendChild(opt);
-            }
-          });
-        }
       } catch (e) {
-        // Meta is optional; UI still works without it.
         console.warn('meta load failed', e);
       }
     }
@@ -253,11 +200,8 @@
         fair: fair.value,
         k: k.value,
         user_id: user.value || '',
-        sectors: selectedSectorsCsv(),
-        q: q.value || '',
         sort: sort.value,
       };
-      if (intent.value) params.intent = intent.value;
 
       try {
         const data = await fetchJson(buildUrl(params));
@@ -285,11 +229,8 @@
       const common = {
         k: k.value,
         user_id: user.value || '',
-        sectors: selectedSectorsCsv(),
-        q: q.value || '',
         sort: 'score_desc'
       };
-      if (intent.value) common.intent = intent.value;
 
       try {
         const [base, treat, mb, mt] = await Promise.all([
@@ -314,7 +255,6 @@
     go.addEventListener('click', fetchTopN);
     compare.addEventListener('click', runComparison);
 
-    // Init
     loadMeta().then(() => {
       fetchTopN();
     });

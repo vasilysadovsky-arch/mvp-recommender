@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import os
 import pandas as pd
+import re
 
 # Local imports
 from models.content import score_content
@@ -127,17 +128,24 @@ def health():
 @app.get("/meta", response_model=MetaResponse)
 def meta():
     users, providers, inter = _load_data()
-    # Apply request-scoped overrides / filters
-    if intent is not None and users is not None and user_id is not None and "intent" in users.columns:
-        users = users.copy()
-        users.loc[users["user_id"].astype(str) == str(user_id), "intent"] = str(intent)
 
-    providers_f = _filter_providers(providers, sectors)
+    # Users list for UI datalist
+    user_ids = []
+    if users is not None and len(users) and "user_id" in users.columns:
+        user_ids = users["user_id"].astype(str).tolist()
 
-    sectors = sorted(set(providers["sector"].astype(str).tolist())) if providers is not None and len(providers) else []
-    intents = sorted(set(users["intent"].astype(str).tolist())) if users is not None and len(users) and "intent" in users.columns else []
-    user_ids = users["user_id"].astype(str).tolist() if users is not None and len(users) and "user_id" in users.columns else []
-    return {"sectors": sectors, "intents": intents, "users": user_ids}
+    # Optional: sectors list (may be unused in UI, but harmless)
+    sectors_list = []
+    if providers is not None and len(providers) and "sector" in providers.columns:
+        sectors_list = sorted(set(providers["sector"].astype(str).tolist()))
+
+    # Optional: intents list (only if present in users.csv)
+    intents_list = []
+    if users is not None and len(users) and "intent" in users.columns:
+        intents_list = sorted(set(users["intent"].astype(str).tolist()))
+
+    return {"sectors": sectors_list, "intents": intents_list, "users": user_ids}
+
 
 @app.get("/metrics", response_model=MetricsResponse)
 def metrics(
@@ -205,10 +213,13 @@ def topN(
     items = _keyword_boost(items, providers_f if providers_f is not None else providers, q)
     items = _sort_items(items, 'score_desc')
 
+    # Apply fairness reranking WITHOUT undoing it via score sorting
     if fair == 1:
         items = rerank_head_tail(items, providers_f if providers_f is not None else providers, k=k)
-
-    # Final sorting for display
-    items = _sort_items(items, sort)
+        if sort == "name_asc":
+            items = _sort_items(items, "name_asc")
+    else:
+        items = _sort_items(items, sort)
 
     return {"mode": mode, "fair": fair, "user_id": user_id, "items": items}
+
